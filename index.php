@@ -1,208 +1,98 @@
+<?php
+require_once "db.php";
+
+$perPage = 10;
+$currentPage = max(1, (int)($_GET["page"] ?? 1));
+$offset = ($currentPage - 1) * $perPage;
+
+$totalStmt = $pdo->query("SELECT COUNT(*) FROM students");
+$totalStudents = $totalStmt->fetchColumn();
+$totalPages = ceil($totalStudents / $perPage);
+
+$stmt = $pdo->prepare("SELECT * FROM students ORDER BY id DESC LIMIT :limit OFFSET :offset");
+$stmt->bindValue(":limit", $perPage, PDO::PARAM_INT);
+$stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+$stmt->execute();
+$students = $stmt->fetchAll();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Profile Card Generator</title>
+    <title>Student Management System</title>
     <style>
-        body{
-            margin:0;
-            font-family:Arial, sans-serif;
-            background:#0f1020;
-            color:white;
-        }
-
-        header{
-            text-align:center;
-            padding:40px;
-            background:linear-gradient(135deg,#1f1835,#341d46);
-            border-bottom:3px solid #d783ff;
-        }
-
-        header h1{
-            color:#d783ff;
-            margin:10px 0;
-        }
-
-        .stats{
-            display:flex;
-            justify-content:center;
-            gap:25px;
-            margin:35px 0;
-        }
-
-        .stat{
-            background:#1d1e2e;
-            padding:20px 40px;
-            border-radius:15px;
-            text-align:center;
-            border:1px solid #3a3b52;
-        }
-
-        .stat h2{
-            color:#d783ff;
-            margin:0;
-        }
-
-        .cards{
-            width:90%;
-            margin:30px auto;
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-            gap:25px;
-        }
-
-        .card{
-            background:#1b1c2c;
-            border-radius:20px;
-            padding:25px;
-            text-align:center;
-            border:1px solid #34364d;
-            box-shadow:0 10px 25px rgba(0,0,0,0.4);
-            transition:0.3s;
-        }
-
-        .card:hover{
-            transform:translateY(-8px);
-            border-color:#d783ff;
-        }
-
-        .avatar{
-            width:85px;
-            height:85px;
-            margin:auto;
-            border-radius:50%;
-            background:linear-gradient(135deg,#d783ff,#6ee7ff);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:32px;
-            font-weight:bold;
-            color:#111;
-        }
-
-        .card h2{
-            color:#fff;
-            margin-top:15px;
-        }
-
-        .role{
-            color:#d783ff;
-            font-weight:bold;
-        }
-
-        .info{
-            color:#bbb;
-            margin:8px 0;
-        }
-
-        .skills{
-            margin-top:15px;
-        }
-
-        .skill{
-            display:inline-block;
-            background:#2c2d42;
-            color:#6ee7ff;
-            padding:6px 10px;
-            border-radius:20px;
-            margin:4px;
-            font-size:13px;
-        }
-
-        footer{
-            text-align:center;
-            color:#777;
-            padding:25px;
-        }
+        body { background:#0f0f1a; color:#e0e0e0; font-family:Arial,sans-serif; margin:0; }
+        header { background:linear-gradient(135deg,#1a1a2e,#2d1b3d); padding:30px; text-align:center; }
+        header h1 { color:#ce93d8; margin:0; }
+        .container { width:90%; margin:30px auto; }
+        .top { display:flex; justify-content:space-between; gap:10px; margin-bottom:20px; }
+        a, button { background:#ce93d8; color:#1a1a2e; padding:10px 14px; border-radius:8px; text-decoration:none; font-weight:bold; border:none; }
+        table { width:100%; border-collapse:collapse; background:rgba(255,255,255,0.03); border-radius:12px; overflow:hidden; }
+        th, td { padding:14px; border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; }
+        th { color:#ce93d8; }
+        .danger { background:#f44336; color:white; }
+        .edit { background:#4caf50; color:white; }
+        .alert { padding:12px; margin-bottom:15px; border-radius:8px; }
+        .success { background:#4caf50; color:white; }
+        .error { background:#f44336; color:white; }
+        .pagination { margin-top:20px; text-align:center; }
+        .pagination a { margin:4px; display:inline-block; }
+        .active { background:#ce93d8 !important; color:#1a1a2e !important; }
     </style>
 </head>
 <body>
 
-<?php
-
-$people = [
-    [
-        "name" => "Abdelrahman Alburai",
-        "role" => "Smart Systems Student",
-        "email" => "abdelrahmanalburai@gmail.com",
-        "city" => "Palestine",
-        "skills" => ["HTML", "CSS", "PHP"]
-    ],
-    [
-        "name" => "Mohammed Salem",
-        "role" => "Web Developer",
-        "email" => "mohammed@example.com",
-        "city" => "Gaza",
-        "skills" => ["JavaScript", "Bootstrap", "PHP"]
-    ],
-    [
-        "name" => "Sara Ahmed",
-        "role" => "UI Designer",
-        "email" => "sara@example.com",
-        "city" => "Khan Younis",
-        "skills" => ["Figma", "CSS", "Design"]
-    ]
-];
-
-function getInitials($name) {
-    $parts = explode(" ", $name);
-    return strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
-}
-
-function showSkills($skills) {
-    foreach ($skills as $skill) {
-        echo "<span class='skill'>$skill</span>";
-    }
-}
-
-?>
-
 <header>
-    <h3>Al-Aqsa University</h3>
-    <h1>Profile Card Generator</h1>
-    <p>Week 11 - Task 01: PHP Arrays, Functions & Loops</p>
+    <h1>Student Management System</h1>
+    <p>Assignment 11 - PHP + MySQL CRUD</p>
 </header>
 
-<section class="stats">
-    <div class="stat">
-        <h2><?php echo count($people); ?></h2>
-        <p>Total People</p>
+<div class="container">
+
+    <?php showFlash(); ?>
+
+    <div class="top">
+        <a href="add.php">+ Add Student</a>
+        <a href="search.php">Search Students</a>
     </div>
 
-    <div class="stat">
-        <h2><?php echo date("Y-m-d"); ?></h2>
-        <p>Current Date</p>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Student Name</th>
+            <th>Email</th>
+            <th>Age</th>
+            <th>Major</th>
+            <th>GPA</th>
+            <th>Actions</th>
+        </tr>
+
+        <?php foreach ($students as $student): ?>
+            <tr>
+                <td><?= $student["id"] ?></td>
+                <td><?= clean($student["name"]) ?></td>
+                <td><?= clean($student["email"]) ?></td>
+                <td><?= $student["age"] ?></td>
+                <td><?= clean($student["major"]) ?></td>
+                <td><?= $student["gpa"] ?></td>
+                <td>
+                    <a class="edit" href="edit.php?id=<?= $student["id"] ?>">Edit</a>
+                    <a class="danger" href="delete.php?id=<?= $student["id"] ?>">Delete</a>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+
+    <div class="pagination">
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <a class="<?= $i === $currentPage ? 'active' : '' ?>" href="?page=<?= $i ?>">
+                <?= $i ?>
+            </a>
+        <?php endfor; ?>
     </div>
-</section>
 
-<section class="cards">
-
-    <?php foreach ($people as $person): ?>
-
-        <div class="card">
-            <div class="avatar">
-                <?php echo getInitials($person["name"]); ?>
-            </div>
-
-            <h2><?php echo $person["name"]; ?></h2>
-
-            <p class="role"><?php echo $person["role"]; ?></p>
-
-            <p class="info">Email: <?php echo $person["email"]; ?></p>
-            <p class="info">City: <?php echo $person["city"]; ?></p>
-
-            <div class="skills">
-                <?php showSkills($person["skills"]); ?>
-            </div>
-        </div>
-
-    <?php endforeach; ?>
-
-</section>
-
-<footer>
-    Al-Aqsa University — Web Development 1
-</footer>
+</div>
 
 </body>
 </html>
